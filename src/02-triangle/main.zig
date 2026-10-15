@@ -5,8 +5,12 @@ const sg = sokol.gfx;
 const sglue = sokol.glue;
 const simgui = sokol.imgui;
 const slog = sokol.log;
+const shd = @import("triangle.zig");
 
-var state = struct {}{};
+var state = struct {
+    bind: sg.Bindings = .{},
+    pipe: sg.Pipeline = .{},
+}{};
 
 export fn init() void {
     // init gfx
@@ -14,6 +18,26 @@ export fn init() void {
         .environment = sglue.environment(),
         .logger = .{ .func = slog.func },
     });
+
+    // create vertex buffer with triangle verts
+    state.bind.vertex_buffers[0] = sg.makeBuffer(.{
+        .data = sg.asRange(&[_]f32{
+            // positions
+            0.0, 0.5, 0.0, // top
+            -0.5, -0.5, 0.0, // left
+            0.5, -0.5, 0.0, // right
+        }),
+    });
+
+    // create shader
+    const backend = sg.queryBackend();
+    const shader_desc = shd.triangleShaderDesc(backend);
+    const shader = sg.makeShader(shader_desc);
+
+    // create pipeline
+    var pipe_desc = sg.PipelineDesc{ .shader = shader };
+    pipe_desc.layout.attrs[shd.ATTR_triangle_position].format = .FLOAT3;
+    state.pipe = sg.makePipeline(pipe_desc);
 
     // init imgui
     simgui.setup(.{ .logger = .{ .func = slog.func } });
@@ -47,9 +71,14 @@ fn draw() void {
     defer sg.endPass();
 
     // DRAW CODE HERE
+    sg.applyPipeline(state.pipe);
+    sg.applyBindings(state.bind);
+    sg.draw(0, 3, 1);
 }
 
-export fn cleanup() void {}
+export fn cleanup() void {
+    sg.shutdown();
+}
 
 export fn event(ev: [*c]const sapp.Event) void {
     _ = ev;
