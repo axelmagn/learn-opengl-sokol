@@ -11,7 +11,7 @@
             .hash = "cimgui-0.1.0-44ClkVBEnAA-LAAR9o0cUrN7CsKHR5hsMj-Byh7sFJLK",
         },
     },
-    .minimum_zig_version = "0.15.2",
+    .minimum_zig_version = "0.17.0",
     .paths = .{""},
     .fingerprint = 0x1892885a0ac1ae2d,
 }

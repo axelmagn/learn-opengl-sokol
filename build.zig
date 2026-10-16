@@ -14,6 +14,7 @@ var deps: struct {
     cimgui: *std.Build.Dependency,
     cimgui_conf: cimgui.Config,
     shdc: *std.Build.Dependency,
+    zstbi: *std.Build.Dependency,
 } = undefined;
 
 pub fn build(b_: *std.Build) !void {
@@ -43,15 +44,17 @@ pub fn build(b_: *std.Build) !void {
     const cimgui_include = deps.cimgui.path(deps.cimgui_conf.include_dir);
     deps.sokol.artifact("sokol_clib").root_module.addIncludePath(cimgui_include);
 
-    try build_stage("01-window", &.{});
-    try build_stage("02-triangle", &.{"triangle"});
-    try build_stage("03-quad", &.{"quad"});
-    try build_stage("04-shaders", &.{"shader"});
+    try build_stage("01-window", &.{}, &.{});
+    try build_stage("02-triangle", &.{"triangle"}, &.{});
+    try build_stage("03-quad", &.{"quad"}, &.{});
+    try build_stage("04-shaders", &.{"shader"}, &.{});
+    try build_stage("05-textures", &.{"shader"}, &.{"stbi"});
 }
 
 fn build_stage(
     name: []const u8,
     shader_names: []const []const u8,
+    c_names: []const []const u8,
 ) !void {
     const mod = b.createModule(.{
         .root_source_file = b.path(b.pathJoin(&.{ "src", name, "main.zig" })),
@@ -86,6 +89,16 @@ fn build_stage(
             .reflection = true,
         });
         exe.step.dependOn(shdc_step);
+    }
+
+    for (c_names) |c_name| {
+        const c_path = b.pathJoin(&.{ "src", name, b.fmt("{s}.c", .{c_name}) });
+        const translate_c = b.addTranslateC(.{
+            .root_source_file = b.path(c_path),
+            .target = cfg.target,
+            .optimize = cfg.optimize,
+        });
+        exe.root_module.addImport(b.fmt("c{s}", .{c_name}), translate_c.createModule());
     }
 
     b.installArtifact(exe);
