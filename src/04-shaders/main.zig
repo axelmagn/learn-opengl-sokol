@@ -1,5 +1,6 @@
 const std = @import("std");
 const sokol = @import("sokol");
+const ig = @import("cimgui");
 const sapp = sokol.app;
 const sg = sokol.gfx;
 const sglue = sokol.glue;
@@ -22,21 +23,22 @@ export fn init() void {
     // create vertex buffer with triangle verts
     state.bind.vertex_buffers[0] = sg.makeBuffer(.{
         .data = sg.asRange(&[_]f32{
-            // positions
-            0.0, 0.5, 0.0, // top
-            -0.5, -0.5, 0.0, // left
-            0.5, -0.5, 0.0, // right
+            // positions   // colors
+            0.0, 0.5, 0.0, 1.0, 0.0, 0.0, // top
+            -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // left
+            0.5, -0.5, 0.0, 0.0, 0.0, 1.0, // right
         }),
     });
 
     // create shader
     const backend = sg.queryBackend();
-    const shader_desc = shd.triangleShaderDesc(backend);
+    const shader_desc = shd.shaderShaderDesc(backend);
     const shader = sg.makeShader(shader_desc);
 
     // create pipeline
     var pipe_desc = sg.PipelineDesc{ .shader = shader };
-    pipe_desc.layout.attrs[shd.ATTR_triangle_position].format = .FLOAT3;
+    pipe_desc.layout.attrs[shd.ATTR_shader_position].format = .FLOAT3;
+    pipe_desc.layout.attrs[shd.ATTR_shader_color].format = .FLOAT3;
     state.pipe = sg.makePipeline(pipe_desc);
 
     // init imgui
@@ -73,12 +75,6 @@ fn draw() void {
     // DRAW CODE HERE
     sg.applyPipeline(state.pipe);
     sg.applyBindings(state.bind);
-
-    const time = @as(f32, @floatFromInt(sapp.frameCount())) / 60;
-    const green_value = @sin(time) / 2 + 0.5;
-
-    const fs_params = shd.FsParams{ .color = .{ 0, green_value, 0, 1 } };
-    sg.applyUniforms(shd.UB_fs_params, sg.asRange(&fs_params));
 
     sg.draw(0, 3, 1);
 }
