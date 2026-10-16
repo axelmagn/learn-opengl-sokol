@@ -48,7 +48,7 @@ pub fn build(b_: *std.Build) !void {
     try build_stage("02-triangle", &.{"triangle"}, &.{});
     try build_stage("03-quad", &.{"quad"}, &.{});
     try build_stage("04-shaders", &.{"shader"}, &.{});
-    try build_stage("05-textures", &.{"shader"}, &.{"stbi"});
+    try build_stage("05-textures", &.{"shader"}, &.{"lib"});
 }
 
 fn build_stage(
@@ -92,13 +92,16 @@ fn build_stage(
     }
 
     for (c_names) |c_name| {
-        const c_path = b.pathJoin(&.{ "src", name, b.fmt("{s}.c", .{c_name}) });
+        const h_path = b.pathJoin(&.{ "src", name, b.fmt("{s}.h", .{c_name}) });
         const translate_c = b.addTranslateC(.{
-            .root_source_file = b.path(c_path),
+            .root_source_file = b.path(h_path),
             .target = cfg.target,
             .optimize = cfg.optimize,
         });
         exe.root_module.addImport(b.fmt("c{s}", .{c_name}), translate_c.createModule());
+
+        const c_path = b.pathJoin(&.{ "src", name, b.fmt("{s}.c", .{c_name}) });
+        exe.root_module.addCSourceFile(.{ .file = b.path(c_path), .flags = &.{} });
     }
 
     b.installArtifact(exe);

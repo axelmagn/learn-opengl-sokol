@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log.scoped(.app);
 const sokol = @import("sokol");
 const ig = @import("cimgui");
 const sapp = sokol.app;
@@ -6,15 +7,19 @@ const sg = sokol.gfx;
 const sglue = sokol.glue;
 const simgui = sokol.imgui;
 const slog = sokol.log;
-const cstbi = @import("cstbi");
+const clib = @import("clib");
 const shd = @import("shader.glsl.zig");
 
 var state = struct {
+    proc: std.process.Init = undefined,
     bind: sg.Bindings = .{},
     pipe: sg.Pipeline = .{},
+    textures: struct {
+        wall: [*c]u8 = undefined,
+    } = .{},
 }{};
 
-const image_bytes = @embedFile("wall.jpg");
+const wall_bytes = @embedFile("wall.jpg");
 
 export fn init() void {
     // init gfx
@@ -33,6 +38,33 @@ export fn init() void {
         }),
     });
 
+    // load wall texture
+    var wall_width: c_int = undefined;
+    var wall_height: c_int = undefined;
+    var wall_channels: c_int = undefined;
+    const wall_ctex = clib.stbi_load_from_memory(
+        wall_bytes.ptr,
+        @intCast(wall_bytes.len),
+        &wall_width,
+        &wall_height,
+        &wall_channels,
+        4,
+    );
+    defer clib.stbi_image_free(wall_ctex);
+
+    // bind wall texture
+    const wall_tex_len: usize = @intCast(wall_width * wall_height * 4);
+    const wall_tex: []u8 = wall_ctex[0..wall_tex_len];
+    var wall_img_data = sg.ImageData{};
+    wall_img_data.mip_levels[0] = sg.asRange(wall_tex);
+    const wall_img = sg.makeImage(.{
+        .width = wall_width,
+        .height = wall_height,
+        .data = wall_img_data,
+    });
+    state.bind.views[shd.VIEW_tex] = sg.makeView(.{ .texture = .{ .image = wall_img } });
+    state.bind.samplers[shd.SMP_smp] = sg.makeSampler(.{});
+
     // create shader
     const backend = sg.queryBackend();
     const shader_desc = shd.shaderShaderDesc(backend);
@@ -41,7 +73,7 @@ export fn init() void {
     // create pipeline
     var pipe_desc = sg.PipelineDesc{ .shader = shader };
     pipe_desc.layout.attrs[shd.ATTR_shader_position].format = .FLOAT3;
-    pipe_desc.layout.attrs[shd.ATTR_shader_color].format = .FLOAT3;
+    pipe_desc.layout.attrs[shd.ATTR_shader_uv].format = .FLOAT2;
     state.pipe = sg.makePipeline(pipe_desc);
 
     // init imgui
@@ -90,7 +122,8 @@ export fn event(ev: [*c]const sapp.Event) void {
     _ = ev;
 }
 
-pub fn main() void {
+pub fn main(proc: std.process.Init) void {
+    state.proc = proc;
     sapp.run(.{
         .init_cb = init,
         .frame_cb = frame,
