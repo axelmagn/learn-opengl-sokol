@@ -46,6 +46,7 @@ pub fn build(b_: *std.Build) !void {
     try build_stage("01-window", &.{});
     try build_stage("02-triangle", &.{"triangle"});
     try build_stage("03-quad", &.{"quad"});
+    try build_stage("04-shaders", &.{"shader"});
 }
 
 fn build_stage(
@@ -69,7 +70,7 @@ fn build_stage(
 
     for (shader_names) |shader_name| {
         const shader_in = b.pathJoin(&.{ "src", name, b.fmt("{s}.glsl", .{shader_name}) });
-        const shader_out = b.pathJoin(&.{ "src", name, b.fmt("{s}.zig", .{shader_name}) });
+        const shader_out = b.pathJoin(&.{ "src", name, b.fmt("{s}.glsl.zig", .{shader_name}) });
         const shdc_step = try sokol.shdc.createSourceFile(b, .{
             .shdc_dep = deps.shdc,
             .input = shader_in,

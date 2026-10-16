@@ -5,7 +5,7 @@ const sg = sokol.gfx;
 const sglue = sokol.glue;
 const simgui = sokol.imgui;
 const slog = sokol.log;
-const shd = @import("quad.zig");
+const shd = @import("quad.glsl.zig");
 
 var state = struct {
     bind: sg.Bindings = .{},
