@@ -1,24 +1,40 @@
 @vs vs
-in vec3 position;
-in vec2 uv;
 
-out vec2 fs_uv;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+layout (location = 2) in vec2 aTexCoord;
+
+out vec3 ourColor;
+out vec2 TexCoord;
 
 void main() {
-    gl_Position = vec4(position, 1.0);
-    fs_uv = uv;
+    gl_Position = vec4(aPos, 1.0);
+    ourColor = aColor;
+    TexCoord = aTexCoord;
 }
 @end
 
 @fs fs
-layout(binding=0) uniform texture2D tex;
+layout(binding=0) uniform texture2D tex0;
+layout(binding=1) uniform texture2D tex1;
 layout(binding=0) uniform sampler smp;
 
-in vec2 fs_uv;
-out vec4 frag_color;
+out vec4 FragColor;
+
+in vec3 ourColor;
+in vec2 TexCoord;
+
+// uniform sampler2D ourTexture;
 
 void main() {
-    frag_color = texture(sampler2D(tex, smp), fs_uv);
+    // frag_color = texture(sampler2D(tex, smp), fs_uv);
+    FragColor = mix(
+        texture(sampler2D(tex0, smp), TexCoord),
+        texture(sampler2D(tex1, smp), TexCoord),
+        0.2
+    );
+    // FragColor = texture(sampler2D(tex0 ,smp), TexCoord) * vec4(ourColor, 1.0);
+    // FragColor = texture(ourTexture, TexCoord);
 }
 @end
 
