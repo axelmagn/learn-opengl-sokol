@@ -30,7 +30,8 @@ void main() {
     // frag_color = texture(sampler2D(tex, smp), fs_uv);
     FragColor = mix(
         texture(sampler2D(tex0, smp), TexCoord),
-        texture(sampler2D(tex1, smp), TexCoord),
+        // texture(sampler2D(tex1, smp), TexCoord),
+        texture(sampler2D(tex1, smp), TexCoord * vec2(-1.0, 1.0)),
         0.2
     );
     // FragColor = texture(sampler2D(tex0 ,smp), TexCoord) * vec4(ourColor, 1.0);
