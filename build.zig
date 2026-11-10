@@ -15,6 +15,7 @@ var deps: struct {
     cimgui_conf: cimgui.Config,
     shdc: *std.Build.Dependency,
     zstbi: *std.Build.Dependency,
+    zalgebra: *std.Build.Dependency,
 } = undefined;
 
 pub fn build(b_: *std.Build) !void {
@@ -26,16 +27,13 @@ pub fn build(b_: *std.Build) !void {
     };
 
     deps.sokol = b.dependency("sokol", .{
-        .target = cfg.target,
-        .optimize = cfg.optimize,
         .with_sokol_imgui = true,
         .with_tracing = true,
     });
 
-    deps.cimgui = b.dependency("cimgui", .{
-        .target = cfg.target,
-        .optimize = cfg.optimize,
-    });
+    deps.zalgebra = b.dependency("zalgebra", .{});
+
+    deps.cimgui = b.dependency("cimgui", .{});
 
     deps.cimgui_conf = cimgui.getConfig(false);
 
@@ -49,6 +47,7 @@ pub fn build(b_: *std.Build) !void {
     try build_stage("03-quad", &.{"quad"}, &.{});
     try build_stage("04-shaders", &.{"shader"}, &.{});
     try build_stage("05-textures", &.{"shader"}, &.{"lib"});
+    try build_stage("06-transformations", &.{"shader"}, &.{"lib"});
 }
 
 fn build_stage(
@@ -63,6 +62,7 @@ fn build_stage(
         .imports = &.{
             .{ .name = "sokol", .module = deps.sokol.module("sokol") },
             .{ .name = "cimgui", .module = deps.cimgui.module(deps.cimgui_conf.module_name) },
+            .{ .name = "zalgebra", .module = deps.zalgebra.module("zalgebra") },
         },
     });
 

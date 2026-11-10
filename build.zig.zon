@@ -10,6 +10,10 @@
             .url = "git+https://github.com/floooh/dcimgui.git#b5c946894651f3e12dbf9ae04c245e13424e0444",
             .hash = "cimgui-0.1.0-44ClkVBEnAA-LAAR9o0cUrN7CsKHR5hsMj-Byh7sFJLK",
         },
+        .zalgebra = .{
+            .url = "git+https://github.com/kooparse/zalgebra.git#b5ebfef29a76fffdf1bc5424ac4c9f49fe323df2",
+            .hash = "zalgebra-0.0.0-aaiVSn6AAQB8nPn_r_w4B679hFolc1a8IjNvSjpQMVzC",
+        },
     },
     .minimum_zig_version = "0.17.0",
     .paths = .{""},
