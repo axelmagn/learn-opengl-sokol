@@ -1,0 +1,197 @@
+const std = @import("std");
+const log = std.log.scoped(.app);
+const sokol = @import("sokol");
+const ig = @import("cimgui");
+const sapp = sokol.app;
+const sg = sokol.gfx;
+const sglue = sokol.glue;
+const simgui = sokol.imgui;
+const slog = sokol.log;
+const za = @import("zalgebra");
+
+const clib = @import("clib");
+const shd = @import("shader.glsl.zig");
+
+var state = struct {
+    proc: std.process.Init = undefined,
+    bind: sg.Bindings = .{},
+    pipe: sg.Pipeline = .{},
+    textures: struct {
+        tex0: [*c]u8 = undefined,
+    } = .{},
+    time: f64 = 0,
+    cube_positions: []const za.Vec3 = &[_]za.Vec3{
+        za.Vec3.new(0.0, 0.0, 0.0),
+        za.Vec3.new(2.0, 5.0, -15.0),
+        za.Vec3.new(-1.5, -2.2, -2.5),
+        za.Vec3.new(-3.8, -2.0, -12.3),
+        za.Vec3.new(2.4, -0.4, -3.5),
+        za.Vec3.new(-1.7, 3.0, -7.5),
+        za.Vec3.new(1.3, -2.0, -2.5),
+        za.Vec3.new(1.5, 2.0, -2.5),
+        za.Vec3.new(1.5, 0.2, -1.5),
+        za.Vec3.new(-1.3, 1.0, -1.5),
+    },
+}{};
+
+const tex0_bytes = @embedFile("container.jpg");
+const tex1_bytes = @embedFile("awesomeface.png");
+
+export fn init() void {
+    // init gfx
+    sg.setup(.{
+        .environment = sglue.environment(),
+        .logger = .{ .func = slog.func },
+    });
+
+    // create vertex buffer with triangle verts
+    const vertices: []f32 = clib.get_vertices()[0..clib.get_vertices_len()];
+    state.bind.vertex_buffers[0] = sg.makeBuffer(.{
+        .data = sg.asRange(vertices),
+    });
+
+    clib.stbi_set_flip_vertically_on_load(1);
+
+    // load tex0 texture
+    var tex0_width: c_int = undefined;
+    var tex0_height: c_int = undefined;
+    var tex0_channels: c_int = undefined;
+    const tex0_ctex = clib.stbi_load_from_memory(
+        tex0_bytes.ptr,
+        @intCast(tex0_bytes.len),
+        &tex0_width,
+        &tex0_height,
+        &tex0_channels,
+        4,
+    );
+    defer clib.stbi_image_free(tex0_ctex);
+
+    // bind tex0 texture
+    const tex0_tex_len: usize = @intCast(tex0_width * tex0_height * 4);
+    const tex0_tex: []u8 = tex0_ctex[0..tex0_tex_len];
+    var tex0_img_data = sg.ImageData{};
+    tex0_img_data.mip_levels[0] = sg.asRange(tex0_tex);
+    const tex0_img = sg.makeImage(.{
+        .width = tex0_width,
+        .height = tex0_height,
+        .data = tex0_img_data,
+    });
+    state.bind.views[shd.VIEW_tex0] = sg.makeView(.{ .texture = .{ .image = tex0_img } });
+
+    // load tex1 texture
+    var tex1_width: c_int = undefined;
+    var tex1_height: c_int = undefined;
+    var tex1_channels: c_int = undefined;
+    const tex1_ctex = clib.stbi_load_from_memory(
+        tex1_bytes.ptr,
+        @intCast(tex1_bytes.len),
+        &tex1_width,
+        &tex1_height,
+        &tex1_channels,
+        4,
+    );
+    defer clib.stbi_image_free(tex1_ctex);
+
+    // bind tex1 texture
+    const tex1_tex_len: usize = @intCast(tex1_width * tex1_height * 4);
+    const tex1_tex: []u8 = tex1_ctex[0..tex1_tex_len];
+    var tex1_img_data = sg.ImageData{};
+    tex1_img_data.mip_levels[0] = sg.asRange(tex1_tex);
+    const tex1_img = sg.makeImage(.{
+        .width = tex1_width,
+        .height = tex1_height,
+        .data = tex1_img_data,
+    });
+    state.bind.views[shd.VIEW_tex1] = sg.makeView(.{ .texture = .{ .image = tex1_img } });
+
+    // bind sampler
+    state.bind.samplers[shd.SMP_smp] = sg.makeSampler(.{});
+
+    // create shader
+    const backend = sg.queryBackend();
+    const shader_desc = shd.shaderShaderDesc(backend);
+    const shader = sg.makeShader(shader_desc);
+
+    // create pipeline
+    var pipe_desc = sg.PipelineDesc{
+        .shader = shader,
+        .index_type = .NONE,
+        .depth = .{ .compare = .LESS_EQUAL, .write_enabled = true },
+    };
+    pipe_desc.layout.attrs[shd.ATTR_shader_aPos].format = .FLOAT3;
+    pipe_desc.layout.attrs[shd.ATTR_shader_aTexCoord].format = .FLOAT2;
+    state.pipe = sg.makePipeline(pipe_desc);
+
+    // init imgui
+    simgui.setup(.{ .logger = .{ .func = slog.func } });
+}
+
+export fn frame() void {
+    state.time += sapp.frameDuration();
+
+    draw_ui();
+    draw();
+}
+
+fn draw_ui() void {
+    simgui.newFrame(.{
+        .width = sapp.width(),
+        .height = sapp.height(),
+        .delta_time = sapp.frameDuration(),
+        .dpi_scale = sapp.dpiScale(),
+    });
+    defer simgui.flush();
+
+    // UI CODE HERE
+}
+
+fn draw() void {
+    var pass_action: sg.PassAction = .{};
+    pass_action.colors[0] = .{
+        .load_action = .CLEAR,
+        .clear_value = .{ .r = 0.2, .g = 0.3, .b = 0.3, .a = 1.0 },
+    };
+    sg.beginPass(.{ .action = pass_action, .swapchain = sglue.swapchain() });
+    defer sg.commit();
+    defer sg.endPass();
+
+    // DRAW CODE HERE
+
+    sg.applyPipeline(state.pipe);
+    sg.applyBindings(state.bind);
+
+    for (state.cube_positions) |pos| {
+        const angle: f32 = @floatCast(za.toDegrees(state.time) * 1);
+        const model = za.Mat4.identity()
+            .translate(pos)
+            .rotate(angle, za.Vec3.new(0.5, 1, 0));
+        const view = za.Mat4.identity().translate(za.Vec3.new(0, 0, -3));
+        const projection = za.perspective(45, 800.0 / 600.0, 0.1, 100);
+
+        const vs_params = shd.VsParams{ .model = model, .view = view, .projection = projection };
+        sg.applyUniforms(shd.UB_vs_params, sg.asRange(&vs_params));
+        sg.draw(0, 36, 1);
+    }
+}
+
+export fn cleanup() void {
+    sg.shutdown();
+}
+
+export fn event(ev: [*c]const sapp.Event) void {
+    _ = ev;
+}
+
+pub fn main(proc: std.process.Init) void {
+    state.proc = proc;
+    sapp.run(.{
+        .init_cb = init,
+        .frame_cb = frame,
+        .cleanup_cb = cleanup,
+        .event_cb = event,
+        .window_title = "learn opengl",
+        .width = 800,
+        .height = 600,
+        .logger = .{ .func = slog.func },
+    });
+}

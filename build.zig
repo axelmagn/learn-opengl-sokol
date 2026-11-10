@@ -48,6 +48,7 @@ pub fn build(b_: *std.Build) !void {
     try build_stage("04-shaders", &.{"shader"}, &.{});
     try build_stage("05-textures", &.{"shader"}, &.{"lib"});
     try build_stage("06-transformations", &.{"shader"}, &.{"lib"});
+    try build_stage("07-coordinates", &.{"shader"}, &.{"lib"});
 }
 
 fn build_stage(
